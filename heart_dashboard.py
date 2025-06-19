@@ -8,28 +8,22 @@ from sklearn.metrics import accuracy_score, roc_curve, auc
 # ── Page setup ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="🚑 Heart Surgery Dashboard", layout="wide")
 
-# ── Load & clean data ─────────────────────────────────────────────────────────
+# ── Load & preprocess ─────────────────────────────────────────────────────────
 @st.cache_data
 def load_data():
     df = pd.read_csv("heart_disease_clean.csv")
-    # Parse dates like "14.6.2023"
-    df["Date"] = pd.to_datetime(df["Date"], format="%d.%m.%Y", errors="coerce")
-    df["Year"] = df["Date"].dt.year
-    # Numeric age
-    df["Age"] = pd.to_numeric(df["Age"], errors="coerce")
-    # Map yes/no columns to 0/1
+    df["Date"]      = pd.to_datetime(df["Date"], format="%d.%m.%Y", errors="coerce")
+    df["Year"]      = df["Date"].dt.year
+    df["Age"]       = pd.to_numeric(df["Age"], errors="coerce")
     for col in ["Smoker", "HTN", "Bleeding"]:
         df[col+"_Num"] = (
-            df[col]
-            .astype(str)
-            .str.strip()
-            .str.lower()
-            .map({"yes":1, "no":0})
+            df[col].astype(str)
+                  .str.strip().str.lower()
+                  .map({"yes":1,"no":0})
         )
-    # Drop rows missing anything we need
     df = df.dropna(subset=[
-        "Sex", "Age", "Residence",
-        "Smoker_Num", "HTN_Num", "Bleeding_Num", "Year"
+        "Sex","Age","Residence",
+        "Smoker_Num","HTN_Num","Bleeding_Num","Year"
     ])
     return df
 
@@ -37,71 +31,89 @@ df = load_data()
 
 # ── Sidebar filters ────────────────────────────────────────────────────────────
 st.sidebar.header("Filters")
-years       = sorted(df["Year"].unique())
-yr_start, yr_end = st.sidebar.slider("Year range", years[0], years[-1], (years[0], years[-1]))
-residences  = sorted(df["Residence"].unique())
-sel_res     = st.sidebar.multiselect("Residence", residences, default=residences)
+yrs         = sorted(df["Year"].unique())
+yr_start,yr_end = st.sidebar.slider("Year range", yrs[0], yrs[-1], (yrs[0],yrs[-1]))
+res_opts    = sorted(df["Residence"].unique())
+sel_res     = st.sidebar.multiselect("Residence", res_opts, default=res_opts)
 
 df_f = df[
-    df["Year"].between(yr_start, yr_end) &
+    df["Year"].between(yr_start,yr_end) &
     df["Residence"].isin(sel_res)
 ]
 
-# ── Key Metrics ───────────────────────────────────────────────────────────────
+# ── KPIs ───────────────────────────────────────────────────────────────────────
 st.title("🚑 Patients Undergoing Open-Heart Surgery")
-c1, c2, c3 = st.columns(3)
-c1.metric("Total Patients",      f"{len(df_f):,}")
-c2.metric("Smokers (%)",         f"{df_f['Smoker_Num'].mean()*100:.1f}")
-c3.metric("Hypertension (%)",    f"{df_f['HTN_Num'].mean()*100:.1f}")
+k1,k2,k3 = st.columns(3)
+k1.metric("Total Patients",   f"{len(df_f):,}")
+k2.metric("Smokers (%)",      f"{df_f.Smoker_Num.mean()*100:.1f}")
+k3.metric("Hypertension (%)", f"{df_f.HTN_Num.mean()*100:.1f}")
 
 # ── 2×2 Grid ───────────────────────────────────────────────────────────────────
-r1c1, r1c2 = st.columns(2)
-with r1c1:
-    fig1 = px.histogram(df_f, x="Sex", color="Sex", title="Gender Distribution")
+c1,c2 = st.columns(2)
+with c1:
+    # Gender distribution
+    fig1 = px.histogram(df_f, x="Sex", color="Sex", title="Gender")
     fig1.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), showlegend=False)
     st.plotly_chart(fig1, use_container_width=True)
 
-with r1c2:
+with c2:
+    # Smoking status
     fig2 = px.pie(df_f, names="Smoker", hole=0.4, title="Smoking Status")
     fig2.update_traces(textinfo="percent+label")
     fig2.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10))
     st.plotly_chart(fig2, use_container_width=True)
 
-r2c1, r2c2 = st.columns(2)
-with r2c1:
-    fig3 = px.box(df_f, y="Age", title="Age Distribution")
-    fig3.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), showlegend=False)
+c3,c4 = st.columns(2)
+with c3:
+    # Bleeding rate by age-bin
+    df_f["AgeBin"] = pd.cut(df_f["Age"], bins=[0,30,45,60,75,100],
+                             labels=["<30","30–45","45–60","60–75","75+"])
+    br = df_f.groupby("AgeBin")["Bleeding_Num"].mean().reset_index()
+    fig3 = px.bar(br, x="AgeBin", y="Bleeding_Num",
+                  labels={"Bleeding_Num":"Bleeding Rate"},
+                  title="Bleeding Rate by Age Group")
+    fig3.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), yaxis_tickformat=".0%")
     st.plotly_chart(fig3, use_container_width=True)
 
-with r2c2:
+with c4:
+    # Patients by residence map (fallback to bar)
     cnt = df_f["Residence"].value_counts().reset_index()
     cnt.columns = ["Residence","Count"]
-    fig4 = px.bar(cnt, x="Residence", y="Count", title="Patients by Residence")
-    fig4.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), xaxis_tickangle=-45)
+    try:
+        fig4 = px.choropleth(cnt, locations="Residence",
+                             locationmode="country names",
+                             color="Count", title="Patients by Residence (Map)")
+        fig4.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10))
+    except Exception:
+        fig4 = px.bar(cnt, x="Residence", y="Count",
+                      title="Patients by Residence (Bar)")
+        fig4.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10),
+                           xaxis_tickangle=-45)
     st.plotly_chart(fig4, use_container_width=True)
 
-# ── Prediction Panel ───────────────────────────────────────────────────────────
-st.subheader("🔮 Predict Bleeding Post-Surgery (HTN → Bleeding)")
+# ── Prediction panel ──────────────────────────────────────────────────────────
+st.subheader("🔮 HTN vs Bleeding Risk")
 
-X = df_f[["HTN_Num"]]
-y = df_f["Bleeding_Num"]
-X_tr, X_te, y_tr, y_te = train_test_split(X, y, stratify=y, random_state=42)
-
-model   = LogisticRegression(solver="liblinear").fit(X_tr, y_tr)
-y_pred  = model.predict(X_te)
+# 1) Bar: Bleeding rate by HTN status
+hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
+hr["HTN"] = hr["HTN_Num"].map({0:"No HTN",1:"HTN"})
+fig5 = px.bar(hr, x="HTN", y="Bleeding_Num",
+              labels={"Bleeding_Num":"Bleeding Rate"},
+              title="Bleeding Rate: HTN vs No-HTN")
+fig5.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), yaxis_tickformat=".0%")
+# 2) ROC Curve
+X = df_f[["HTN_Num"]]; y = df_f["Bleeding_Num"]
+X_tr,X_te,y_tr,y_te = train_test_split(X,y,stratify=y,random_state=42)
+model = LogisticRegression(solver="liblinear").fit(X_tr,y_tr)
 y_proba = model.predict_proba(X_te)[:,1]
+fpr,tpr,_ = roc_curve(y_te,y_proba)
 
-acc = accuracy_score(y_te, y_pred)
-fpr, tpr, _ = roc_curve(y_te, y_proba)
-roc_auc = auc(fpr, tpr)
+fig6 = px.area(x=fpr, y=tpr,
+               title="ROC Curve",
+               labels={"x":"False Positive Rate","y":"True Positive Rate"})
+fig6.add_shape(type="line", line=dict(dash="dash"), x0=0,x1=1,y0=0,y1=1)
+fig6.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), showlegend=False)
 
-st.markdown(f"**Accuracy:** {acc:.2f}   **AUC:** {roc_auc:.2f}")
-
-fig5 = px.area(
-    x=fpr, y=tpr,
-    title="ROC Curve",
-    labels={"x":"False Positive Rate","y":"True Positive Rate"}
-)
-fig5.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=1, y0=0, y1=1)
-fig5.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), showlegend=False)
-st.plotly_chart(fig5, use_container_width=True)
+p1,p2 = st.columns(2)
+p1.plotly_chart(fig5, use_container_width=True)
+p2.plotly_chart(fig6, use_container_width=True)
