@@ -101,7 +101,10 @@ with r2c2:
 # ── Bleeding Prediction Panel ──────────────────────────────────────────────────
 st.subheader("🔮 Bleeding Risk & Prediction")
 
-# 1) Actual bleeding rate by HTN
+# ── Bleeding Prediction Panel ──────────────────────────────────────────────────
+st.subheader("🔮 Bleeding Risk & Impact")
+
+# 1) Actual bleeding rate by HTN (unchanged)
 hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
 hr["HTN"] = hr["HTN_Num"].map({0:"No HTN", 1:"HTN"})
 fig5 = px.bar(
@@ -110,24 +113,27 @@ fig5 = px.bar(
     template="plotly_white"
 )
 fig5.update_traces(marker_color=[light_blue, dark_blue])
-fig5.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), yaxis_tickformat=".0%", showlegend=False)
+fig5.update_layout(
+    height=260,
+    margin=dict(t=30,b=10,l=10,r=10),
+    yaxis_tickformat=".0%",
+    showlegend=False
+)
 
-# 2) Predicted bleeding probability distribution
-X = df_f[["HTN_Num"]]; y = df_f["Bleeding_Num"]
-X_tr, X_te, y_tr, y_te = train_test_split(X, y, stratify=y, random_state=42)
-model = LogisticRegression(solver="liblinear").fit(X_tr, y_tr)
-df_pred = X_te.copy()
-df_pred["Prob"] = model.predict_proba(X_te)[:,1]
-df_pred["HTN"]  = df_pred["HTN_Num"].map({0:"No HTN",1:"HTN"})
-
-fig6 = px.violin(
-    df_pred, x="HTN", y="Prob", box=True, points="all",
-    color="HTN", 
-    color_discrete_map={"No HTN": light_blue, "HTN": dark_blue},
-    labels={"Prob":"Predicted Bleeding Probability"},
+# 2) ICU stay distribution by Bleeding status
+fig6 = px.box(
+    df_f, x="Bleeding", y="ICU stay",
+    color="Bleeding",
+    category_orders={"Bleeding":["No","Yes"]},
+    color_discrete_map={"No": light_blue, "Yes": dark_blue},
+    labels={"ICU stay":"ICU Stay (days)"},
     template="plotly_white"
 )
-fig6.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), showlegend=False)
+fig6.update_layout(
+    height=260,
+    margin=dict(t=30,b=10,l=10,r=10),
+    showlegend=False
+)
 
 p1, p2 = st.columns(2)
 p1.plotly_chart(fig5, use_container_width=True)
