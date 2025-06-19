@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
 
 # ── Page setup ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="🚑 Open Heart Disease Dashboard", layout="wide")
@@ -17,8 +19,7 @@ def load_data():
     for col in ["Smoker", "HTN", "Bleeding"]:
         df[col + "_Num"] = df[col].str.strip().str.lower().map({"yes": 1, "no": 0})
     df = df.dropna(subset=[
-        "Sex", "Age", "Residence",
-        "Smoker_Num", "HTN_Num", "Bleeding_Num", "Year", "Obesity"
+        "Sex", "Age", "Residence", "Smoker_Num", "HTN_Num", "Bleeding_Num", "Year"
     ])
     return df
 
@@ -47,37 +48,35 @@ light_blue = "#aec7e8"
 
 r1c1, r1c2 = st.columns(2)
 with r1c1:
-    st.subheader("Open Heart Surgeries across Gender")
+    st.subheader("Surgeries by Gender")
     fig1 = px.histogram(
         df_f, x="Sex",
         template="plotly_white",
         color_discrete_sequence=[dark_blue]
     )
-    fig1.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10), showlegend=False)
+    fig1.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
     st.plotly_chart(fig1, use_container_width=True)
 
 with r1c2:
-    st.subheader("Surgeries across Smokers")
+    st.subheader("Surgeries by Smoking Status")
     fig2 = px.pie(
-        df_f, names="Smoker", hole=0.4,
-        template="plotly_white"
+        df_f, names="Smoker", hole=0.4, template="plotly_white"
     )
     fig2.update_traces(
         textinfo="percent+label",
         marker=dict(colors=[dark_blue, light_blue])
     )
-    fig2.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10))
+    fig2.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig2, use_container_width=True)
 
 r2c1, r2c2 = st.columns(2)
 with r2c1:
-    st.subheader("Open Heart Surgeries by Age")
+    st.subheader("Surgeries by Age")
     fig3 = px.histogram(
-        df_f, x="Age", nbins=20,
-        template="plotly_white"
+        df_f, x="Age", nbins=20, template="plotly_white"
     )
     fig3.update_traces(marker_color=dark_blue)
-    fig3.update_layout(height=260, margin=dict(t=30,b=10,l=10,r=10))
+    fig3.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig3, use_container_width=True)
 
 with r2c2:
@@ -89,41 +88,39 @@ with r2c2:
         .reset_index(name="Count")
     )
     fig4 = px.bar(
-        cnt, x="Area", y="Count",
-        template="plotly_white"
+        cnt, x="Area", y="Count", template="plotly_white"
     )
     fig4.update_traces(marker_color=light_blue)
     fig4.update_layout(
-        height=260,
-        margin=dict(t=30,b=10,l=10,r=10),
-        xaxis_tickangle=-45,
-        showlegend=False
+        height=260, margin=dict(t=30, b=10, l=10, r=10),
+        xaxis_tickangle=-45, showlegend=False
     )
     st.plotly_chart(fig4, use_container_width=True)
 
-# ── Obesity Insight Panel ───────────────────────────────────────────────────────
-st.subheader("🔎 Hypertension Rate by Obesity Status")
-# compute HTN rate per obesity group
-htn_ob = (
-    df_f.groupby("Obesity")["HTN_Num"]
-    .mean()
-    .reset_index()
-    .rename(columns={"HTN_Num": "HTN_Rate"})
-)
-# ensure order No → Yes
-htn_ob["Obesity"] = pd.Categorical(htn_ob["Obesity"], categories=["No","Yes"], ordered=True)
+# ── Bleeding Prediction Panel ──────────────────────────────────────────────────
+st.subheader("🔮 Predict Bleeding Risk Based on HTN")
 
-fig5 = px.bar(
-    htn_ob, x="Obesity", y="HTN_Rate",
-    labels={"HTN_Rate": "Hypertension Rate"},
+# Prepare data for modeling
+X = df_f[["HTN_Num"]]
+y = df_f["Bleeding_Num"]
+
+# Train/test split & model
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, stratify=y, random_state=42)
+model = LogisticRegression(solver="liblinear").fit(X_tr, y_tr)
+y_proba = model.predict_proba(X_te)[:, 1]
+
+# Build prediction DataFrame
+df_pred = X_te.copy()
+df_pred["Bleed_Prob"] = y_proba
+df_pred["HTN"] = df_pred["HTN_Num"].map({0: "No HTN", 1: "HTN"})
+
+# Plot predicted bleeding probability
+fig5 = px.violin(
+    df_pred, x="HTN", y="Bleed_Prob", box=True, points="all",
+    color="HTN", 
+    color_discrete_map={"No HTN": light_blue, "HTN": dark_blue},
+    labels={"Bleed_Prob": "Predicted Bleeding Probability"},
     template="plotly_white"
 )
-# lighter bar for non-obese, darker for obese
-fig5.update_traces(marker_color=[light_blue, dark_blue])
-fig5.update_layout(
-    height=260,
-    margin=dict(t=30,b=10,l=10,r=10),
-    yaxis_tickformat=".0%",
-    showlegend=False
-)
+fig5.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
 st.plotly_chart(fig5, use_container_width=True)
