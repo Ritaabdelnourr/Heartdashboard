@@ -98,14 +98,8 @@ with r2c2:
     )
     st.plotly_chart(fig4, use_container_width=True)
 
-# ── Bleeding Prediction Panel ──────────────────────────────────────────────────
-st.subheader("🔮 Bleeding Risk & Prediction")
-
-# ── Bleeding Prediction Panel ──────────────────────────────────────────────────
-st.subheader("🔮 Bleeding Risk & Impact")
-
-# ── Bleeding Risk & Age Insights ───────────────────────────────────────────────
-st.subheader("🔮 Bleeding Risk & Age Insights")
+# ── Bleeding Risk & Age Trend ───────────────────────────────────────────────────
+st.subheader("🔮 Bleeding Risk & Age Trend")
 
 p1, p2 = st.columns(2)
 
@@ -126,27 +120,17 @@ with p1:
     st.plotly_chart(fig5, use_container_width=True)
 
 with p2:
-    st.markdown("**Bleeding Rate by Age Group**")
-    # create bins
-    df_f["AgeGroup"] = pd.cut(
-        df_f["Age"],
-        bins=[0,50,60,70,100],
-        labels=["<50","50–60","60–70","70+"]
-    )
-    br_age = (
-        df_f.groupby("AgeGroup")["Bleeding_Num"]
-        .mean()
-        .reset_index()
-    )
-    fig6 = px.bar(
-        br_age,
-        x="AgeGroup", y="Bleeding_Num",
-        labels={"Bleeding_Num":"Bleeding Rate","AgeGroup":"Age Group"},
+    st.markdown("**Bleeding vs Age Trend**")
+    fig6 = px.scatter(
+        df_f, x="Age", y="Bleeding_Num",
+        trendline="lowess",
+        trendline_color_override=dark_blue,
+        labels={"Bleeding_Num":"Bleeding (0 = No, 1 = Yes)"},
         template="plotly_white"
     )
-    fig6.update_traces(marker_color=dark_blue)
+    fig6.update_traces(marker=dict(color=light_blue, opacity=0.6), selector=dict(mode="markers"))
     fig6.update_layout(
         height=260, margin=dict(t=10,b=10,l=10,r=10),
-        yaxis_tickformat=".0%", showlegend=False
+        yaxis_tickformat=".0", yaxis=dict(tickvals=[0,1], ticktext=["No","Yes"])
     )
     st.plotly_chart(fig6, use_container_width=True)
