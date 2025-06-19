@@ -5,8 +5,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 
 # ── Page setup ────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="🚑 Open Heart Disease Dashboard", layout="wide")
-st.title("🚑 Open Heart Disease Dashboard")
+st.set_page_config(page_title="🚑 Heart Disease Dashboard", layout="wide")
+st.title("🚑 Heart Disease Dashboard")
 st.markdown("#### Open Heart Surgeries Cohort Analysis")
 
 # ── Load & preprocess ─────────────────────────────────────────────────────────
