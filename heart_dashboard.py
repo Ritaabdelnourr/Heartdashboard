@@ -120,21 +120,46 @@ fig5.update_layout(
     showlegend=False
 )
 
-# 2) ICU stay distribution by Bleeding status
-fig6 = px.box(
-    df_f, x="Bleeding", y="ICU stay",
-    color="Bleeding",
-    category_orders={"Bleeding":["No","Yes"]},
-    color_discrete_map={"No": light_blue, "Yes": dark_blue},
-    labels={"ICU stay":"ICU Stay (days)"},
-    template="plotly_white"
+# ── ICU Stay by HTN & Bleeding Combination ─────────────────────────────────────
+st.subheader("🔎 Avg. ICU Stay by HTN & Bleeding Status")
+
+# build a “Group” column
+df_grp = df_f.copy()
+df_grp["Group"] = df_grp.apply(
+    lambda r: f"{'HTN' if r.HTN_Num==1 else 'No HTN'} & {'Bleed' if r.Bleeding_Num==1 else 'No Bleed'}",
+    axis=1
+)
+
+# define order and compute means
+order = ["No HTN & No Bleed", "No HTN & Bleed", "HTN & No Bleed", "HTN & Bleed"]
+means = (
+    df_grp.groupby("Group")["ICU stay"]
+    .mean()
+    .reindex(order)
+    .reset_index()
+    .rename(columns={"ICU stay": "Avg_ICU_Stay"})
+)
+
+# plot
+fig6 = px.bar(
+    means,
+    x="Group",
+    y="Avg_ICU_Stay",
+    labels={"Avg_ICU_Stay":"Avg ICU Stay (days)"},
+    template="plotly_white",
+    color="Group",
+    color_discrete_map={
+        "No HTN & No Bleed": light_blue,
+        "No HTN & Bleed":     "#7fbfff",
+        "HTN & No Bleed":     "#337ab7",
+        "HTN & Bleed":        dark_blue,
+    }
 )
 fig6.update_layout(
     height=260,
     margin=dict(t=30,b=10,l=10,r=10),
+    xaxis_tickangle=-45,
     showlegend=False
 )
+st.plotly_chart(fig6, use_container_width=True)
 
-p1, p2 = st.columns(2)
-p1.plotly_chart(fig5, use_container_width=True)
-p2.plotly_chart(fig6, use_container_width=True)
