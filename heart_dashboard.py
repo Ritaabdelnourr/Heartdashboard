@@ -42,28 +42,27 @@ c3.metric("Hypertension (%)", f"{df_f['HTN_Num'].mean()*100:.1f}")
 # ── Chart Section ──────────────────────────────────────────────────────────────
 st.subheader("Open Heart Surgeries")
 
-dark_blue = "#1f77b4"
+dark_blue  = "#1f77b4"
 light_blue = "#aec7e8"
 
 r1c1, r1c2 = st.columns(2)
 with r1c1:
     st.subheader("Gender Distribution")
     fig1 = px.histogram(
-        df_f, x="Sex",
+        df_f,
+        x="Sex",
         template="plotly_white",
         color_discrete_sequence=[dark_blue]
     )
-    fig1.update_layout(
-        height=260,
-        margin=dict(t=30, b=10, l=10, r=10),
-        showlegend=False
-    )
+    fig1.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
     st.plotly_chart(fig1, use_container_width=True)
 
 with r1c2:
     st.subheader("Smoking Status")
     fig2 = px.pie(
-        df_f, names="Smoker", hole=0.4,
+        df_f,
+        names="Smoker",
+        hole=0.4,
         template="plotly_white"
     )
     fig2.update_traces(
@@ -77,47 +76,13 @@ r2c1, r2c2 = st.columns(2)
 with r2c1:
     st.subheader("Surgeries by Age")
     fig3 = px.histogram(
-        df_f, x="Age", nbins=20,
+        df_f,
+        x="Age",
+        nbins=20,
         template="plotly_white"
     )
     fig3.update_traces(marker_color=dark_blue)
     fig3.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig3, use_container_width=True)
 
-with r2c2:
-    st.subheader("Surgeries by Area")
-    cnt = (
-        df_f["Residence"]
-        .value_counts()
-        .rename_axis("Area")
-        .reset_index(name="Count")
-    )
-    fig4 = px.bar(
-        cnt, x="Area", y="Count",
-        template="plotly_white"
-    )
-    fig4.update_traces(marker_color=light_blue)
-    fig4.update_layout(
-        height=260,
-        margin=dict(t=30, b=10, l=10, r=10),
-        xaxis_tickangle=-45,
-        showlegend=False
-    )
-    st.plotly_chart(fig4, use_container_width=True)
-
-# ── Obesity Insight Panel ───────────────────────────────────────────────────────
-st.subheader("🔎 Surgeries by Obesity Status")
-cnt_ob = (
-    df_f["Obesity"]
-    .value_counts()
-    .rename_axis("Obesity")
-    .reset_index(name="Count")
-)
-fig5 = px.bar(
-    cnt_ob, x="Obesity", y="Count",
-    category_orders={"Obesity": ["No", "Yes"]},
-    template="plotly_white"
-)
-fig5.update_traces(marker_color=dark_blue)
-fig5.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
-st.plotly_chart(fig5, use_container_width=True)
+wi
