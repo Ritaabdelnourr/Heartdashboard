@@ -9,7 +9,7 @@ st.set_page_config(page_title="🚑 Open-Heart Surgery Dashboard", layout="wide"
 @st.cache_data
 def load_data():
     # adjust filename/extension if needed
-    df = pd.read_excel("heart disease.xlsx", engine="openpyxl")
+    df = pd.read_csv("heart_disease_clean.csv")
     # keep only the two surgery reasons
     df = df[df["Surgery"].isin(["cardiovascular disease", "valvular disease"])]
     # extract Year for filtering
