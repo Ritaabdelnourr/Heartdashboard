@@ -3,8 +3,8 @@ import pandas as pd
 import plotly.express as px
 
 # ── Page setup ────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="🚑 Open Heart Disease Dashboard", layout="wide")
-st.title("🚑 Open Heart Disease Dashboard")
+st.set_page_config(page_title="🚑Heart Disease Dashboard", layout="wide")
+st.title("🚑Heart Disease Dashboard")
 st.markdown("#### Open Heart Surgeries Cohort Analysis")
 
 # ── Load & preprocess ─────────────────────────────────────────────────────────
