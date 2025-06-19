@@ -1,53 +1,131 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, roc_curve, auc
 
-# Page config
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="🚑 Open-Heart Surgery Dashboard", layout="wide")
 
-# Load cleaned data
-df = pd.read_csv("heart_disease_clean.csv")
-df["Year"] = pd.to_datetime(df["Date"], errors="coerce").dt.year
+# ── Load & preprocess ─────────────────────────────────────────────────────────
+@st.cache_data
+def load_data():
+    # load your original Excel file
+    df = pd.read_excel("heart disease.xlsx", engine="openpyxl")
+    # keep only the two relevant surgery types
+    df = df[df["Surgery"].isin(["cardiovascular disease", "valvular disease"])]
+    # extract year for filtering
+    df["Year"] = pd.to_datetime(df["Date"], errors="coerce").dt.year
+    return df
 
-# Sidebar filters
-st.sidebar.header("Filters")
-years = sorted(df["Year"].dropna().astype(int).unique())
-yr_start, yr_end = st.sidebar.slider("Year range", years[0], years[-1], (years[0], years[-1]))
-res_opts = sorted(df["Residence"].dropna().unique())
-sel_res = st.sidebar.multiselect("Residence", res_opts, default=res_opts)
+df = load_data()
 
-df_f = df[(df["Year"].between(yr_start, yr_end)) & (df["Residence"].isin(sel_res))]
+# ── Sidebar filters ────────────────────────────────────────────────────────────
+st.sidebar.header("🔎 Filters")
 
-# **Drop any rows still containing NaNs in key fields**
+# surgery reason (in case you want to pick one or both)
+surg_opts = sorted(df["Surgery"].dropna().unique())
+sel_surg  = st.sidebar.multiselect("Surgery Reason", surg_opts, default=surg_opts)
+
+# year slider
+years     = sorted(df["Year"].dropna().astype(int).unique())
+yr_start, yr_end = st.sidebar.slider(
+    "Year range",
+    min_value=years[0],
+    max_value=years[-1],
+    value=(years[0], years[-1])
+)
+
+# residence filter
+res_opts  = sorted(df["Residence"].dropna().unique())
+sel_res   = st.sidebar.multiselect("Residence", res_opts, default=res_opts)
+
+# apply all filters
+df_f = df[
+    df["Surgery"].isin(sel_surg) &
+    df["Year"].between(yr_start, yr_end) &
+    df["Residence"].isin(sel_res)
+].copy()
+
+# ── Drop any remaining rows with missing key fields ────────────────────────────
 required = ["Sex", "Age", "Smoker", "HTN", "Bleeding", "Residence", "Year"]
-df_f = df_f.dropna(subset=required).copy()
+df_f = df_f.dropna(subset=required)
 
-# Title & KPIs
-st.title("🚑 Open-Heart Surgery Cohort")
+# ── Map Yes/No columns to numeric for metrics & modelling ──────────────────────
+df_f["Smoker_Num"]   = df_f["Smoker"].map({"Yes": 1, "No": 0})
+df_f["HTN_Num"]      = df_f["HTN"].map({"Yes": 1, "No": 0})
+df_f["Bleeding_Num"] = df_f["Bleeding"].map({"Yes": 1, "No": 0})
+
+# ── Title & KPIs ───────────────────────────────────────────────────────────────
+st.title("🚑 Open-Heart Surgery Cohort Dashboard")
 c1, c2, c3 = st.columns(3)
-c1.metric("Patients", f"{len(df_f):,}")
-c2.metric("Smokers (%)", f"{df_f.Smoker.mean()*100:.1f}")
-c3.metric("Hypertension (%)", f"{df_f.HTN.mean()*100:.1f}")
+c1.metric("Total Patients",      f"{len(df_f):,}")
+c2.metric("Smokers (%)",         f"{df_f['Smoker_Num'].mean()*100:.1f}")
+c3.metric("Hypertension (%)",    f"{df_f['HTN_Num'].mean()*100:.1f}")
 
-# 2×2 grid
+# ── 2×2 Grid of Charts ─────────────────────────────────────────────────────────
 r1c1, r1c2 = st.columns(2)
 with r1c1:
-    fig1 = px.histogram(df_f, x="Sex", color="Sex", title="Gender")
+    fig1 = px.histogram(
+        df_f, x="Sex", color="Sex", title="Gender"
+    )
     fig1.update_layout(height=280, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
     st.plotly_chart(fig1, use_container_width=True)
+
 with r1c2:
-    fig2 = px.pie(df_f, names="Smoker", hole=0.4, title="Smoker vs Non-Smoker")
+    fig2 = px.pie(
+        df_f, names="Smoker", hole=0.4, title="Smoker vs Non-Smoker"
+    )
     fig2.update_traces(textinfo="percent+label")
     fig2.update_layout(height=280, margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig2, use_container_width=True)
 
 r2c1, r2c2 = st.columns(2)
 with r2c1:
-    fig3 = px.box(df_f, y="Age", title="Age Distribution")
+    fig3 = px.box(
+        df_f, y="Age", title="Age Distribution"
+    )
     fig3.update_layout(height=280, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
     st.plotly_chart(fig3, use_container_width=True)
+
 with r2c2:
-    cnt = df_f.Residence.value_counts().reset_index().rename(columns={"index":"Residence","Residence":"Count"})
-    fig4 = px.bar(cnt, x="Residence", y="Count", title="By Residence")
-    fig4.update_layout(height=280, margin=dict(t=30, b=10, l=10, r=10), xaxis_tickangle=-45)
+    cnt = df_f["Residence"].value_counts().reset_index()
+    cnt.columns = ["Residence", "Count"]
+    fig4 = px.bar(
+        cnt, x="Residence", y="Count", title="By Residence"
+    )
+    fig4.update_layout(
+        height=280,
+        margin=dict(t=30, b=10, l=10, r=10),
+        xaxis_tickangle=-45
+    )
     st.plotly_chart(fig4, use_container_width=True)
+
+# ── Bleeding Prediction (HTN → Bleeding) ───────────────────────────────────────
+st.subheader("🔮 Predict Bleeding Post-Surgery")
+
+X = df_f[["HTN_Num"]]
+y = df_f["Bleeding_Num"]
+
+X_tr, X_te, y_tr, y_te = train_test_split(
+    X, y, stratify=y, random_state=42
+)
+model = LogisticRegression(solver="liblinear").fit(X_tr, y_tr)
+
+y_pred  = model.predict(X_te)
+y_proba = model.predict_proba(X_te)[:, 1]
+acc     = accuracy_score(y_te, y_pred)
+fpr, tpr, _ = roc_curve(y_te, y_proba)
+roc_auc = auc(fpr, tpr)
+
+st.markdown(f"**Accuracy:** {acc:.2f}    **AUC:** {roc_auc:.2f}")
+
+fig5 = px.area(
+    x=fpr, y=tpr,
+    title="ROC Curve",
+    labels={"x": "False Positive Rate", "y": "True Positive Rate"},
+)
+fig5.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=1, y0=0, y1=1)
+fig5.update_layout(height=280, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
+st.plotly_chart(fig5, use_container_width=True)
