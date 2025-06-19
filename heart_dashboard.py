@@ -103,6 +103,7 @@ st.subheader("🔮 Bleeding Risk & Age Trend")
 
 p1, p2 = st.columns(2)
 
+# 1) Bleeding Rate by HTN (unchanged)
 with p1:
     st.markdown("**Bleeding Rate by HTN**")
     hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
@@ -119,18 +120,25 @@ with p1:
     )
     st.plotly_chart(fig5, use_container_width=True)
 
+# 2) Bleeding Rate vs Age line
 with p2:
-    st.markdown("**Bleeding vs Age Trend**")
-    fig6 = px.scatter(
-        df_f, x="Age", y="Bleeding_Num",
-        trendline="lowess",
-        trendline_color_override=dark_blue,
-        labels={"Bleeding_Num":"Bleeding (0 = No, 1 = Yes)"},
+    st.markdown("**Bleeding Rate vs Age**")
+    # compute rate per age
+    age_rate = (
+        df_f.groupby(df_f["Age"].round())
+            ["Bleeding_Num"]
+            .mean()
+            .reset_index(name="Bleeding_Rate")
+    )
+    fig6 = px.line(
+        age_rate,
+        x="Age", y="Bleeding_Rate",
+        labels={"Bleeding_Rate":"Bleeding Rate", "Age":"Age (years)"},
         template="plotly_white"
     )
-    fig6.update_traces(marker=dict(color=light_blue, opacity=0.6), selector=dict(mode="markers"))
+    fig6.update_traces(line_color=dark_blue)
     fig6.update_layout(
         height=260, margin=dict(t=10,b=10,l=10,r=10),
-        yaxis_tickformat=".0", yaxis=dict(tickvals=[0,1], ticktext=["No","Yes"])
+        yaxis_tickformat=".0%"
     )
     st.plotly_chart(fig6, use_container_width=True)
