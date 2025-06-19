@@ -14,10 +14,8 @@ def load_data():
     df["Date"]   = pd.to_datetime(df["Date"], format="%d.%m.%Y", errors="coerce")
     df["Year"]   = df["Date"].dt.year
     df["Age"]    = pd.to_numeric(df["Age"], errors="coerce")
-    # map yes/no to 0/1
     for col in ["Smoker", "HTN", "Bleeding"]:
         df[col + "_Num"] = df[col].str.strip().str.lower().map({"yes": 1, "no": 0})
-    # drop any rows missing critical fields
     df = df.dropna(subset=[
         "Sex", "Age", "Residence",
         "Smoker_Num", "HTN_Num", "Bleeding_Num", "Year", "Obesity"
@@ -44,7 +42,6 @@ c3.metric("Hypertension (%)", f"{df_f['HTN_Num'].mean()*100:.1f}")
 # ── Chart Section ──────────────────────────────────────────────────────────────
 st.subheader("Open Heart Surgeries")
 
-# define your two shades of blue
 dark_blue = "#1f77b4"
 light_blue = "#aec7e8"
 
@@ -67,10 +64,12 @@ with r1c2:
     st.subheader("Smoking Status")
     fig2 = px.pie(
         df_f, names="Smoker", hole=0.4,
-        color_discrete_sequence=[dark_blue, light_blue],
         template="plotly_white"
     )
-    fig2.update_traces(textinfo="percent+label")
+    fig2.update_traces(
+        textinfo="percent+label",
+        marker=dict(colors=[dark_blue, light_blue])
+    )
     fig2.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig2, use_container_width=True)
 
@@ -79,9 +78,9 @@ with r2c1:
     st.subheader("Surgeries by Age")
     fig3 = px.histogram(
         df_f, x="Age", nbins=20,
-        template="plotly_white",
-        color_discrete_sequence=[dark_blue]
+        template="plotly_white"
     )
+    fig3.update_traces(marker_color=dark_blue)
     fig3.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig3, use_container_width=True)
 
@@ -90,14 +89,14 @@ with r2c2:
     cnt = (
         df_f["Residence"]
         .value_counts()
-        .reset_index()
-        .rename(columns={"index": "Area", "Residence": "Count"})
+        .rename_axis("Area")
+        .reset_index(name="Count")
     )
     fig4 = px.bar(
         cnt, x="Area", y="Count",
-        template="plotly_white",
-        color_discrete_sequence=[light_blue]
+        template="plotly_white"
     )
+    fig4.update_traces(marker_color=light_blue)
     fig4.update_layout(
         height=260,
         margin=dict(t=30, b=10, l=10, r=10),
@@ -111,16 +110,14 @@ st.subheader("🔎 Surgeries by Obesity Status")
 cnt_ob = (
     df_f["Obesity"]
     .value_counts()
-    .reset_index()
-    .rename(columns={"index": "Obesity", "Obesity": "Count"})
+    .rename_axis("Obesity")
+    .reset_index(name="Count")
 )
-# ensure ordering No→Yes
 fig5 = px.bar(
     cnt_ob, x="Obesity", y="Count",
     category_orders={"Obesity": ["No", "Yes"]},
-    color="Obesity",
-    color_discrete_map={"No": light_blue, "Yes": dark_blue},
     template="plotly_white"
 )
+fig5.update_traces(marker_color=dark_blue)
 fig5.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
 st.plotly_chart(fig5, use_container_width=True)
