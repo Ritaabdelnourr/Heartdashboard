@@ -47,7 +47,7 @@ light_blue = "#aec7e8"
 
 r1c1, r1c2 = st.columns(2)
 with r1c1:
-    st.subheader("Gender Distribution")
+    st.subheader("Open Heart Surgeries across Gender")
     fig1 = px.histogram(
         df_f, x="Sex",
         template="plotly_white",
@@ -57,7 +57,7 @@ with r1c1:
     st.plotly_chart(fig1, use_container_width=True)
 
 with r1c2:
-    st.subheader("Smoking Status")
+    st.subheader("Surgeries across Smokers")
     fig2 = px.pie(
         df_f, names="Smoker", hole=0.4,
         template="plotly_white"
@@ -71,7 +71,7 @@ with r1c2:
 
 r2c1, r2c2 = st.columns(2)
 with r2c1:
-    st.subheader("Surgeries by Age")
+    st.subheader("Open Heart Surgeries by Age")
     fig3 = px.histogram(
         df_f, x="Age", nbins=20,
         template="plotly_white"
