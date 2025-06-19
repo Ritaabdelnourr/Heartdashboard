@@ -1,9 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_curve
 
 # ── Page setup ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="🚑 Open Heart Disease Dashboard", layout="wide")
@@ -81,7 +78,7 @@ with r2c1:
     st.subheader("Surgeries by Age")
     fig3 = px.histogram(
         df_f, x="Age", nbins=20,
-        template="plotly_white",
+        template="plotly_white"
     )
     fig3.update_traces(marker_color=dark_blue)
     fig3.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10))
@@ -106,3 +103,21 @@ with r2c2:
         xaxis_tickangle=-45,
         showlegend=False
     )
+    st.plotly_chart(fig4, use_container_width=True)
+
+# ── Obesity Insight Panel ───────────────────────────────────────────────────────
+st.subheader("🔎 Surgeries by Obesity Status")
+cnt_ob = (
+    df_f["Obesity"]
+    .value_counts()
+    .rename_axis("Obesity")
+    .reset_index(name="Count")
+)
+fig5 = px.bar(
+    cnt_ob, x="Obesity", y="Count",
+    category_orders={"Obesity": ["No", "Yes"]},
+    template="plotly_white"
+)
+fig5.update_traces(marker_color=dark_blue)
+fig5.update_layout(height=260, margin=dict(t=30, b=10, l=10, r=10), showlegend=False)
+st.plotly_chart(fig5, use_container_width=True)
