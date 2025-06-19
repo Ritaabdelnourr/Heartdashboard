@@ -104,62 +104,49 @@ st.subheader("🔮 Bleeding Risk & Prediction")
 # ── Bleeding Prediction Panel ──────────────────────────────────────────────────
 st.subheader("🔮 Bleeding Risk & Impact")
 
-# 1) Actual bleeding rate by HTN (unchanged)
-hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
-hr["HTN"] = hr["HTN_Num"].map({0:"No HTN", 1:"HTN"})
-fig5 = px.bar(
-    hr, x="HTN", y="Bleeding_Num",
-    labels={"Bleeding_Num":"Bleeding Rate"},
-    template="plotly_white"
-)
-fig5.update_traces(marker_color=[light_blue, dark_blue])
-fig5.update_layout(
-    height=260,
-    margin=dict(t=30,b=10,l=10,r=10),
-    yaxis_tickformat=".0%",
-    showlegend=False
-)
+# ── Bleeding Risk & Age Insights ───────────────────────────────────────────────
+st.subheader("🔮 Bleeding Risk & Age Insights")
 
-# ── ICU Stay by HTN & Bleeding Combination ─────────────────────────────────────
-st.subheader("🔎 Avg. ICU Stay by HTN & Bleeding Status")
+p1, p2 = st.columns(2)
 
-# build a “Group” column
-df_grp = df_f.copy()
-df_grp["Group"] = df_grp.apply(
-    lambda r: f"{'HTN' if r.HTN_Num==1 else 'No HTN'} & {'Bleed' if r.Bleeding_Num==1 else 'No Bleed'}",
-    axis=1
-)
+with p1:
+    st.markdown("**Bleeding Rate by HTN**")
+    hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
+    hr["HTN"] = hr["HTN_Num"].map({0:"No HTN",1:"HTN"})
+    fig5 = px.bar(
+        hr, x="HTN", y="Bleeding_Num",
+        labels={"Bleeding_Num":"Bleeding Rate"},
+        template="plotly_white"
+    )
+    fig5.update_traces(marker_color=[light_blue, dark_blue])
+    fig5.update_layout(
+        height=260, margin=dict(t=10,b=10,l=10,r=10),
+        yaxis_tickformat=".0%", showlegend=False
+    )
+    st.plotly_chart(fig5, use_container_width=True)
 
-# define order and compute means
-order = ["No HTN & No Bleed", "No HTN & Bleed", "HTN & No Bleed", "HTN & Bleed"]
-means = (
-    df_grp.groupby("Group")["ICU stay"]
-    .mean()
-    .reindex(order)
-    .reset_index()
-    .rename(columns={"ICU stay": "Avg_ICU_Stay"})
-)
-
-# plot
-fig6 = px.bar(
-    means,
-    x="Group",
-    y="Avg_ICU_Stay",
-    labels={"Avg_ICU_Stay":"Avg ICU Stay (days)"},
-    template="plotly_white",
-    color="Group",
-    color_discrete_map={
-        "No HTN & No Bleed": light_blue,
-        "No HTN & Bleed":     "#7fbfff",
-        "HTN & No Bleed":     "#337ab7",
-        "HTN & Bleed":        dark_blue,
-    }
-)
-fig6.update_layout(
-    height=260,
-    margin=dict(t=30,b=10,l=10,r=10),
-    xaxis_tickangle=-45,
-    showlegend=False
-)
-st.plotly_chart(fig6, use_container_width=True)
-
+with p2:
+    st.markdown("**Bleeding Rate by Age Group**")
+    # create bins
+    df_f["AgeGroup"] = pd.cut(
+        df_f["Age"],
+        bins=[0,50,60,70,100],
+        labels=["<50","50–60","60–70","70+"]
+    )
+    br_age = (
+        df_f.groupby("AgeGroup")["Bleeding_Num"]
+        .mean()
+        .reset_index()
+    )
+    fig6 = px.bar(
+        br_age,
+        x="AgeGroup", y="Bleeding_Num",
+        labels={"Bleeding_Num":"Bleeding Rate","AgeGroup":"Age Group"},
+        template="plotly_white"
+    )
+    fig6.update_traces(marker_color=dark_blue)
+    fig6.update_layout(
+        height=260, margin=dict(t=10,b=10,l=10,r=10),
+        yaxis_tickformat=".0%", showlegend=False
+    )
+    st.plotly_chart(fig6, use_container_width=True)
