@@ -7,22 +7,31 @@ st.set_page_config(page_title="Heart Disease Dashboard", layout="wide")
 st.set_page_config(page_title="Heart Disease Dashboard", layout="wide")
 
 # ↓––– Add this immediately after page-config ––––––––––––––––––––––––
+st.set_page_config(page_title="Heart Disease Dashboard", layout="wide")
+
+# ⬇︎ NEW – ultra-compact CSS ⬇︎
 st.markdown(
     """
     <style>
-    /* slider label & current value */
+    /* 1️⃣ tighten top/bottom padding between every Streamlit element */
+    .block-container > div {margin-top:0.25rem;margin-bottom:0.25rem;}
+
+    /* 2️⃣ eliminate the extra gap just above charts created by st.columns */
+    div[data-testid="column"] > div:first-child {margin-top:0rem;}
+
+    /* 3️⃣ shrink slider & multiselect text so controls take less height */
     div[data-testid="stSlider"] label,
-    div[data-testid="stSlider"] span {font-size: 0.70rem !important;}
-
-    /* multiselect label */
-    div[data-testid="stMultiSelect"] label {font-size: 0.70rem !important;}
-
-    /* multiselect placeholder, chosen tags, dropdown text */
-    div[data-baseweb="select"] * {font-size: 0.68rem !important;}
+    div[data-testid="stSlider"] span,
+    div[data-testid="stMultiSelect"] label,
+    div[data-baseweb="select"] * {
+        font-size:0.68rem !important;
+        line-height:1.0rem;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
 
 
 # ─── TITLE & KPIs ───────────────────────────────────────────────────────
