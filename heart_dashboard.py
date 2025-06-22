@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ── PAGE + ULTRA-COMPACT CSS ─────────────────────────────────────────
+# ── PAGE CONFIG + ULTRA-COMPACT CSS ──────────────────────────────────
 st.set_page_config(page_title="Heart-Disease Dashboard", layout="wide")
 st.markdown(
     """
@@ -32,24 +32,24 @@ def load() -> pd.DataFrame:
     df["Year"] = df["Date"].dt.year
     df["Age"]  = pd.to_numeric(df["Age"], errors="coerce")
     for c in ["Smoker", "HTN", "Bleeding"]:
-        df[c] = df[c].astype(str).strip()
+        df[c] = df[c].astype(str).str.strip()          # ✅ fixed
         df[c + "_Num"] = df[c].str.lower().map({"yes": 1, "no": 0})
     df = df.dropna(subset=[
         "Sex","Age","Smoker_Num","HTN_Num","Bleeding_Num","Year"
     ])
-    df["Sex"]    = df["Sex"].str.strip()
+    df["Sex"]    = df["Sex"].str.strip()               # ✅ fixed
     df["Smoker"] = df["Smoker"].str.strip()
     df["HTN"]    = df["HTN"].str.strip()
     return df
 
 df = load()
 
-# ── COLOUR MAPS ──────────────────────────────────────────────────────
+# ── COLOURS ───────────────────────────────────────────────────────────
 SEX_COLORS = {"M": "#1f77b4", "F": "#ff7f0e"}
 HTN_COLORS = {"No HTN": "#17becf", "HTN": "#9467bd"}
 DARK, LIGHT = "#1f77b4", "#aec7e8"
 
-# ── FILTER BAR (Year & Age sliders + 3 selects) ─────────────────────
+# ── FILTER BAR ───────────────────────────────────────────────────────
 with st.container():
     s1, s2 = st.columns(2, gap="small")
     years = sorted(df["Year"].unique())
@@ -95,12 +95,12 @@ c11, c12 = st.columns(2, gap="small")
 with c11:
     g = df_f["Sex"].value_counts().reset_index()
     g.columns = ["Sex", "Count"]
-    fig = px.bar(g, x="Sex", y="Count",
-                 color="Sex", color_discrete_map=SEX_COLORS,
+    fig = px.bar(g, x="Sex", y="Count", color="Sex",
+                 color_discrete_map=SEX_COLORS,
                  template="plotly_white",
                  title="Surgeries by Gender")
-    fig.update_layout(height=H, margin=M, showlegend=False, font=FONT,
-                      title_font_size=10)
+    fig.update_layout(height=H, margin=M, showlegend=False,
+                      font=FONT, title_font_size=10)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 with c12:
@@ -117,11 +117,12 @@ with c12:
 c21, c22 = st.columns(2, gap="small")
 
 with c21:
-    fig = px.histogram(df_f, x="Age", nbins=20, template="plotly_white",
+    fig = px.histogram(df_f, x="Age", nbins=20,
+                       template="plotly_white",
                        title="Age Distribution")
     fig.update_traces(marker_color=DARK)
-    fig.update_layout(height=H, margin=M, showlegend=False, font=FONT,
-                      title_font_size=10)
+    fig.update_layout(height=H, margin=M, showlegend=False,
+                      font=FONT, title_font_size=10)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 with c22:
@@ -132,7 +133,7 @@ with c22:
                  template="plotly_white",
                  color="HTN", color_discrete_map=HTN_COLORS,
                  title="Bleeding Risk by HTN")
-    fig.update_layout(height=H, margin=M, font=FONT,
-                      yaxis_tickformat=".0%", title_font_size=10,
-                      showlegend=False)
+    fig.update_layout(height=H, margin=M,
+                      yaxis_tickformat=".0%", font=FONT,
+                      title_font_size=10, showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
