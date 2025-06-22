@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ── PAGE CONFIG + ULTRA-COMPACT CSS ──────────────────────────────────
+# ── PAGE CONFIG + ULTRA-COMPACT CSS ─────────────────────────────────
 st.set_page_config(page_title="Heart-Disease Dashboard", layout="wide")
 st.markdown(
     """
@@ -21,10 +21,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── TITLE ────────────────────────────────────────────────────────────
+# ── TITLE ───────────────────────────────────────────────────────────
 st.write("#### 🚑 Heart-Disease Dashboard – Open-Heart Surgeries")
 
-# ── LOAD & CLEAN DATA ────────────────────────────────────────────────
+# ── LOAD & PREP DATA ────────────────────────────────────────────────
 @st.cache_data
 def load() -> pd.DataFrame:
     df = pd.read_csv("heart_disease_clean.csv")
@@ -32,24 +32,24 @@ def load() -> pd.DataFrame:
     df["Year"] = df["Date"].dt.year
     df["Age"]  = pd.to_numeric(df["Age"], errors="coerce")
     for c in ["Smoker", "HTN", "Bleeding"]:
-        df[c] = df[c].astype(str).str.strip()          # ✅ fixed
+        df[c] = df[c].astype(str).str.strip()
         df[c + "_Num"] = df[c].str.lower().map({"yes": 1, "no": 0})
     df = df.dropna(subset=[
         "Sex","Age","Smoker_Num","HTN_Num","Bleeding_Num","Year"
     ])
-    df["Sex"]    = df["Sex"].str.strip()               # ✅ fixed
+    df["Sex"]    = df["Sex"].str.strip()
     df["Smoker"] = df["Smoker"].str.strip()
     df["HTN"]    = df["HTN"].str.strip()
     return df
 
 df = load()
 
-# ── COLOURS ───────────────────────────────────────────────────────────
+# ── COLOURS ─────────────────────────────────────────────────────────
 SEX_COLORS = {"M": "#1f77b4", "F": "#ff7f0e"}
 HTN_COLORS = {"No HTN": "#17becf", "HTN": "#9467bd"}
 DARK, LIGHT = "#1f77b4", "#aec7e8"
 
-# ── FILTER BAR ───────────────────────────────────────────────────────
+# ── FILTER BAR ──────────────────────────────────────────────────────
 with st.container():
     s1, s2 = st.columns(2, gap="small")
     years = sorted(df["Year"].unique())
@@ -60,20 +60,19 @@ with st.container():
     with s2:
         age_from, age_to = st.slider("Age range", amin, amax,
                                      (amin, amax))
-
     c1, c2, c3 = st.columns(3, gap="small")
     with c1:
-        sel_gender = st.multiselect(
-            "Gender", sorted(df["Sex"].unique()),
-            default=sorted(df["Sex"].unique()))
+        sel_gender = st.multiselect("Gender",
+                                    sorted(df["Sex"].unique()),
+                                    default=sorted(df["Sex"].unique()))
     with c2:
-        sel_smk = st.multiselect(
-            "Smoker", sorted(df["Smoker"].unique()),
-            default=sorted(df["Smoker"].unique()))
+        sel_smk = st.multiselect("Smoker",
+                                 sorted(df["Smoker"].unique()),
+                                 default=sorted(df["Smoker"].unique()))
     with c3:
-        sel_htn = st.multiselect(
-            "HTN", sorted(df["HTN"].unique()),
-            default=sorted(df["HTN"].unique()))
+        sel_htn = st.multiselect("HTN",
+                                 sorted(df["HTN"].unique()),
+                                 default=sorted(df["HTN"].unique()))
 
 df_f = df[
     df["Year"].between(yr_from, yr_to)
@@ -84,10 +83,11 @@ df_f = df[
 ]
 
 # ── PLOT CONFIG ─────────────────────────────────────────────────────
-H   = 140
-M   = dict(t=3, b=3, l=3, r=3)
-CFG = {"displayModeBar": False}
-FONT = dict(size=9)
+H            = 140
+M            = dict(t=3, b=3, l=3, r=3)
+CFG          = {"displayModeBar": False}
+FONT         = dict(size=9)
+TITLE_SIZE   = 13          # ← larger chart titles
 
 # ── ROW 1 ───────────────────────────────────────────────────────────
 c11, c12 = st.columns(2, gap="small")
@@ -100,7 +100,7 @@ with c11:
                  template="plotly_white",
                  title="Surgeries by Gender")
     fig.update_layout(height=H, margin=M, showlegend=False,
-                      font=FONT, title_font_size=10)
+                      font=FONT, title_font_size=TITLE_SIZE)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 with c12:
@@ -110,7 +110,7 @@ with c12:
     fig.update_traces(marker=dict(colors=[DARK, LIGHT]),
                       textinfo="percent+label")
     fig.update_layout(height=H, margin=M, font=FONT,
-                      title_font_size=10)
+                      title_font_size=TITLE_SIZE)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 # ── ROW 2 ───────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ with c21:
                        title="Age Distribution")
     fig.update_traces(marker_color=DARK)
     fig.update_layout(height=H, margin=M, showlegend=False,
-                      font=FONT, title_font_size=10)
+                      font=FONT, title_font_size=TITLE_SIZE)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 with c22:
@@ -135,5 +135,5 @@ with c22:
                  title="Bleeding Risk by HTN")
     fig.update_layout(height=H, margin=M,
                       yaxis_tickformat=".0%", font=FONT,
-                      title_font_size=10, showlegend=False)
+                      title_font_size=TITLE_SIZE, showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
