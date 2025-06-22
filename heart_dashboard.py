@@ -4,18 +4,26 @@ import plotly.express as px
 
 # ─── GLOBAL COMPACT STYLE ──────────────────────────────────────────────
 st.set_page_config(page_title="Heart Disease Dashboard", layout="wide")
+st.set_page_config(page_title="Heart Disease Dashboard", layout="wide")
+
+# ↓––– Add this immediately after page-config ––––––––––––––––––––––––
 st.markdown(
     """
     <style>
-        /* shrink default paddings */
-        .block-container {padding-top:0.5rem; padding-bottom:0.5rem;}
-        h1, h2, h3, h4 {margin-bottom:0.2rem;}
-        /* fit KPI metrics tighter */
-        div[data-testid="metric-container"] > div {line-height:1.0rem;}
+    /* slider label & current value */
+    div[data-testid="stSlider"] label,
+    div[data-testid="stSlider"] span {font-size: 0.70rem !important;}
+
+    /* multiselect label */
+    div[data-testid="stMultiSelect"] label {font-size: 0.70rem !important;}
+
+    /* multiselect placeholder, chosen tags, dropdown text */
+    div[data-baseweb="select"] * {font-size: 0.68rem !important;}
     </style>
     """,
     unsafe_allow_html=True,
 )
+
 
 # ─── TITLE & KPIs ───────────────────────────────────────────────────────
 TITLE_COL, *_ = st.columns([0.35, 0.22, 0.22, 0.22])
