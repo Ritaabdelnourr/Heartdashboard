@@ -25,40 +25,30 @@ def load_data():
     ])
 df = load_data()
 
-# ─────────  FILTER BAR (always visible)  ───────────────────────────────
+# ─────────  FILTER BAR  ────────────────────────────────────────────────
 with st.container():
     fc1, fc2 = st.columns([0.5, 0.5], gap="small")
-
     yrs = sorted(df["Year"].unique())
     with fc1:
-        yr_start, yr_end = st.slider(
-            "Year range", int(yrs[0]), int(yrs[-1]),
-            (int(yrs[0]), int(yrs[-1])), key="yr"
-        )
-
+        yr_start, yr_end = st.slider("Year range", int(yrs[0]), int(yrs[-1]),
+                                     (int(yrs[0]), int(yrs[-1])))
     a_min, a_max = int(df["Age"].min()), int(df["Age"].max())
     with fc2:
-        a_from, a_to = st.slider(
-            "Age range", a_min, a_max, (a_min, a_max), key="age"
-        )
+        a_from, a_to = st.slider("Age range", a_min, a_max, (a_min, a_max))
 
     fc3, fc4, fc5, fc6 = st.columns(4, gap="small")
-
     with fc3:
         areas = sorted(df["Residence"].unique())
-        sel_area = st.multiselect("Residence", areas, default=areas, key="area")
-
+        sel_area = st.multiselect("Residence", areas, default=areas)
     with fc4:
         genders = sorted(df["Sex"].unique())
-        sel_gender = st.multiselect("Gender", genders, default=genders, key="sex")
-
+        sel_gender = st.multiselect("Gender", genders, default=genders)
     with fc5:
         smk_vals = sorted(df["Smoker"].unique())
-        sel_smk = st.multiselect("Smoker", smk_vals, default=smk_vals, key="smk")
-
+        sel_smk = st.multiselect("Smoker", smk_vals, default=smk_vals)
     with fc6:
         htn_vals = sorted(df["HTN"].unique())
-        sel_htn = st.multiselect("HTN", htn_vals, default=htn_vals, key="htn")
+        sel_htn = st.multiselect("HTN", htn_vals, default=htn_vals)
 
 df_f = df[
     df["Year"].between(yr_start, yr_end) &
@@ -79,59 +69,24 @@ k3.metric("HTN %",     f"{df_f['HTN_Num'].mean()*100:.1f}")
 H  = 185
 M  = dict(t=12, b=5, l=5, r=5)
 CFG = {"displayModeBar": False}
-DARK, LIGHT = "#1f77b4", "#aec7e8"
+
+# custom colour maps
+SEX_COLORS = {"M": "#1f77b4", "F": "#ff7f0e"}          # blue / orange
+HTN_COLORS = {"No HTN": "#2ca02c", "HTN": "#d62728"}   # green / red
+DARK, LIGHT = "#1f77b4", "#aec7e8"                     # for other charts
 
 # ─────────  2 × 2 GRID  ────────────────────────────────────────────────
 r1c1, r1c2 = st.columns(2, gap="small")
 r2c1, r2c2 = st.columns(2, gap="small")
 
-# ① Surgeries by Gender
+# ① Surgeries by Gender  (distinct colours)
 with r1c1:
-    fig = px.histogram(df_f, x="Sex", template="plotly_white",
-                       color_discrete_sequence=[DARK])
+    fig = px.histogram(df_f, x="Sex", color="Sex",
+                       color_discrete_map=SEX_COLORS,
+                       template="plotly_white")
     fig.update_layout(height=H, margin=M, showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
-# ② Surgeries by Smoking Status
+# ② Surgeries by Smoking Status (pie unchanged)
 with r1c2:
-    fig = px.pie(df_f, names="Smoker", hole=0.35, template="plotly_white")
-    fig.update_traces(textinfo="percent+label",
-                      marker=dict(colors=[DARK, LIGHT]))
-    fig.update_layout(height=H, margin=M)
-    st.plotly_chart(fig, use_container_width=True, config=CFG)
-
-# ③ Surgeries by Age
-with r2c1:
-    fig = px.histogram(df_f, x="Age", nbins=20, template="plotly_white")
-    fig.update_traces(marker_color=DARK)
-    fig.update_layout(height=H, margin=M, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True, config=CFG)
-
-# ④ NEW: Bleeding Rate by Smoking × HTN
-with r2c2:
-    rates = (
-        df_f.groupby(["Smoker_Num", "HTN_Num"])["Bleeding_Num"]
-        .mean().reset_index()
-    )
-    rates["Smoker"] = rates["Smoker_Num"].map({0: "No", 1: "Yes"})
-    rates["HTN"]    = rates["HTN_Num"].map({0: "No HTN", 1: "HTN"})
-    fig = px.bar(
-        rates, x="Smoker", y="Bleeding_Num", color="HTN",
-        barmode="group", template="plotly_white",
-        labels={"Bleeding_Num": "Bleeding Rate", "Smoker": "Smoker"}
-    )
-    fig.update_traces(marker_line_width=0,
-                      marker_color=[LIGHT, DARK, LIGHT, DARK])
-    fig.update_layout(height=H, margin=M, yaxis_tickformat=".0%")
-    st.plotly_chart(fig, use_container_width=True, config=CFG)
-
-# ─────────  EXPANDER (one chart left)  ─────────────────────────────────
-with st.expander("🔮 Bleeding-risk by HTN (detail)", expanded=False):
-    hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
-    hr["HTN"] = hr["HTN_Num"].map({0: "No", 1: "Yes"})
-    fig = px.bar(hr, x="HTN", y="Bleeding_Num",
-                 labels={"Bleeding_Num": "Bleeding Rate"},
-                 template="plotly_white")
-    fig.update_traces(marker_color=[LIGHT, DARK])
-    fig.update_layout(height=H-10, margin=M, yaxis_tickformat=".0%")
-    st.plotly_chart(fig, use_container_width=True, config=CFG)
+    fig = p
