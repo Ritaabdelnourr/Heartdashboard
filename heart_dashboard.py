@@ -2,83 +2,94 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ── Page setup ──────────────────────────────────────────────────────────────
+# ─────────────  PAGE SETUP  ──────────────────────────────────────────────
 st.set_page_config(page_title="Heart Disease Dashboard", layout="wide")
 TITLE_COL, *_ = st.columns([0.35, 0.22, 0.22, 0.22])
 with TITLE_COL:
     st.write("### 🚑 Heart-Disease Dashboard — Open-Heart Surgeries")
 
-# ── Load & preprocess (unchanged) ───────────────────────────────────────────
+# ─────────────  LOAD & PREP  ─────────────────────────────────────────────
 @st.cache_data
 def load_data():
     df = pd.read_csv("heart_disease_clean.csv")
     df["Date"] = pd.to_datetime(df["Date"], format="%d.%m.%Y", errors="coerce")
     df["Year"] = df["Date"].dt.year
-    df["Age"] = pd.to_numeric(df["Age"], errors="coerce")
-
+    df["Age"]  = pd.to_numeric(df["Age"], errors="coerce")
     for col in ["Smoker", "HTN", "Bleeding"]:
         df[col + "_Num"] = (
             df[col].astype(str).str.strip().str.lower().map({"yes": 1, "no": 0})
         )
-
     return df.dropna(subset=[
-        "Sex", "Age", "Residence",
-        "Smoker_Num", "HTN_Num", "Bleeding_Num", "Year"
+        "Sex","Age","Residence",
+        "Smoker_Num","HTN_Num","Bleeding_Num","Year"
     ])
-
 df = load_data()
 
-# ── Sidebar filters ─────────────────────────────────────────────────────────
-st.sidebar.header("Filters")
+# ─────────────  FILTER BAR (no sidebar)  ────────────────────────────────
+with st.container():
+    # Row 1 – sliders
+    fc1, fc2 = st.columns([0.5, 0.5], gap="small")
 
-yrs = sorted(df["Year"].unique())
-yr_start, yr_end = st.sidebar.slider("Year", yrs[0], yrs[-1], (yrs[0], yrs[-1]))
+    yrs = sorted(df["Year"].unique())
+    with fc1:
+        yr_start, yr_end = st.slider(
+            "Year range",
+            min_value=int(yrs[0]), max_value=int(yrs[-1]),
+            value=(int(yrs[0]), int(yrs[-1])),
+            key="yr"
+        )
 
-areas = st.sidebar.multiselect(
-    "Residence", sorted(df["Residence"].unique()),
-    default=sorted(df["Residence"].unique())
-)
+    a_min, a_max = int(df["Age"].min()), int(df["Age"].max())
+    with fc2:
+        a_from, a_to = st.slider(
+            "Age range",
+            min_value=a_min, max_value=a_max,
+            value=(a_min, a_max),
+            key="age"
+        )
 
-genders = st.sidebar.multiselect(
-    "Gender", sorted(df["Sex"].unique()),
-    default=sorted(df["Sex"].unique())
-)
+    # Row 2 – multiselects
+    fc3, fc4, fc5, fc6 = st.columns(4, gap="small")
 
-smk = st.sidebar.multiselect(
-    "Smoker", sorted(df["Smoker"].unique()),
-    default=sorted(df["Smoker"].unique())
-)
+    with fc3:
+        areas = sorted(df["Residence"].unique())
+        sel_area = st.multiselect("Residence", areas, default=areas, key="area")
 
-htn = st.sidebar.multiselect(
-    "HTN", sorted(df["HTN"].unique()),
-    default=sorted(df["HTN"].unique())
-)
+    with fc4:
+        genders = sorted(df["Sex"].unique())
+        sel_gender = st.multiselect("Gender", genders, default=genders, key="sex")
 
-a_min, a_max = int(df["Age"].min()), int(df["Age"].max())
-a_from, a_to = st.sidebar.slider("Age", a_min, a_max, (a_min, a_max))
+    with fc5:
+        smk_vals = sorted(df["Smoker"].unique())
+        sel_smk = st.multiselect("Smoker", smk_vals, default=smk_vals, key="smk")
 
+    with fc6:
+        htn_vals = sorted(df["HTN"].unique())
+        sel_htn = st.multiselect("HTN", htn_vals, default=htn_vals, key="htn")
+
+# Apply filters
 df_f = df[
     df["Year"].between(yr_start, yr_end) &
-    df["Residence"].isin(areas) &
-    df["Sex"].isin(genders) &
-    df["Smoker"].isin(smk) &
-    df["HTN"].isin(htn) &
+    df["Residence"].isin(sel_area) &
+    df["Sex"].isin(sel_gender) &
+    df["Smoker"].isin(sel_smk) &
+    df["HTN"].isin(sel_htn) &
     df["Age"].between(a_from, a_to)
 ]
 
-# ── KPIs inline with title ─────────────────────────────────────────────────
+# ─────────────  KPI ROW  ────────────────────────────────────────────────
 _, k1, k2, k3 = st.columns([0.35, 0.22, 0.22, 0.22])
 k1.metric("Patients", f"{len(df_f):,}")
 k2.metric("Smokers %", f"{df_f['Smoker_Num'].mean()*100:.1f}")
 k3.metric("HTN %",     f"{df_f['HTN_Num'].mean()*100:.1f}")
 
-# ── Plotly config ──────────────────────────────────────────────────────────
-H = 200                              # chart height
-M = dict(t=15, b=5, l=5, r=5)        # tight margins
-CFG = {"displayModeBar": False}      # hide mode-bar
+# ─────────────  CHART CONFIG  ───────────────────────────────────────────
+H = 185                              # shorter charts to save space
+M = dict(t=12, b=5, l=5, r=5)
+CFG = {"displayModeBar": False}
 DARK, LIGHT = "#1f77b4", "#aec7e8"
 
-# ── 2 × 2 canvas ───────────────────────────────────────────────────────────
+# ─────────────  2 × 2 GRID  ─────────────────────────────────────────────
 r1c1, r1c2 = st.columns(2, gap="small")
 r2c1, r2c2 = st.columns(2, gap="small")
 
@@ -110,7 +121,7 @@ with r2c2:
                       showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
-# ── Collapsible detail ─────────────────────────────────────────────────────
+# ─────────────  EXPANDER  ───────────────────────────────────────────────
 with st.expander("🔮 Bleeding-risk detail", expanded=False):
     c1, c2 = st.columns(2, gap="small")
 
