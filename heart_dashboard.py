@@ -24,6 +24,52 @@ def load_data():
         "Smoker_Num","HTN_Num","Bleeding_Num","Year"
     ])
 df = load_data()
+# ─────────  CLEAN categorical columns *before* plotting  ───────────────
+#   (add right after the df = load_data() line)
+
+df["Sex"]   = df["Sex"].astype(str).str.strip()          # remove stray spaces
+df["Smoker"] = df["Smoker"].astype(str).str.strip()
+df["HTN"]    = df["HTN"].astype(str).str.strip()
+
+# -----------------------------------------------------------------------
+# Colour dictionaries (unchanged values, just kept for reference)
+SEX_COLORS = {"M": "#1f77b4", "F": "#ff7f0e"}           # blue / orange
+HTN_COLORS = {"No HTN": "#2ca02c", "HTN": "#d62728"}    # green / red
+# -----------------------------------------------------------------------
+
+# ①  Surgeries by Gender  — re-build with *bar* instead of histogram
+with r1c1:
+    count_sex = (df_f["Sex"].value_counts()
+                 .rename_axis("Sex").reset_index(name="Count"))
+    fig = px.bar(count_sex, x="Sex", y="Count",
+                 color="Sex", color_discrete_map=SEX_COLORS,
+                 template="plotly_white")
+    fig.update_layout(height=H, margin=M, showlegend=False)
+    st.plotly_chart(fig, use_container_width=True, config=CFG)
+
+# ④  Bleeding Rate by Smoking × HTN  — colours now guaranteed
+with r2c2:
+    combo = (df_f.groupby(["Smoker_Num", "HTN_Num"])["Bleeding_Num"]
+             .mean().reset_index())
+    combo["Smoker"] = combo["Smoker_Num"].map({0: "No", 1: "Yes"})
+    combo["HTN"]    = combo["HTN_Num"].map({0: "No HTN", 1: "HTN"})
+    fig = px.bar(combo, x="Smoker", y="Bleeding_Num", color="HTN",
+                 barmode="group", template="plotly_white",
+                 labels={"Bleeding_Num": "Bleeding Rate", "Smoker": "Smoker"},
+                 color_discrete_map=HTN_COLORS)
+    fig.update_layout(height=H, margin=M, yaxis_tickformat=".0%")
+    st.plotly_chart(fig, use_container_width=True, config=CFG)
+
+#  Expander chart — apply the same green/red
+with st.expander("🔮 Bleeding-risk by HTN (detail)", expanded=False):
+    hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
+    hr["HTN"] = hr["HTN_Num"].map({0: "No HTN", 1: "HTN"})
+    fig = px.bar(hr, x="HTN", y="Bleeding_Num",
+                 labels={"Bleeding_Num": "Bleeding Rate"},
+                 template="plotly_white",
+                 color="HTN", color_discrete_map=HTN_COLORS)
+    fig.update_layout(height=H-10, margin=M, yaxis_tickformat=".0%")
+    st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 # ─────────  FILTER BAR  ────────────────────────────────────────────────
 with st.container():
