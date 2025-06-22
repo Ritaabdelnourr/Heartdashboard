@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ── PAGE CONFIG & ULTRA-COMPACT CSS ─────────────────────────────────
+# ── PAGE CONFIG & ULTRA-COMPACT CSS ────────────────────────────────
 st.set_page_config(page_title="Heart-Disease Dashboard", layout="wide")
 st.markdown(
     """
@@ -33,11 +33,13 @@ def load() -> pd.DataFrame:
     for c in ["Smoker", "HTN", "Bleeding"]:
         df[c] = df[c].astype(str).str.strip()
         df[c + "_Num"] = df[c].str.lower().map({"yes": 1, "no": 0})
-    df = df.dropna(subset=["Sex","Age","Smoker_Num","HTN_Num","Bleeding_Num","Year"])
+    df = df.dropna(subset=["Sex","Age","Smoker_Num",
+                           "HTN_Num","Bleeding_Num","Year"])
     df["Sex"]    = df["Sex"].str.strip()
     df["Smoker"] = df["Smoker"].str.strip()
     df["HTN"]    = df["HTN"].str.strip()
     return df
+
 df = load()
 
 # ── COLOURS ─────────────────────────────────────────────────────────
@@ -50,10 +52,12 @@ with st.container():
     s1, s2 = st.columns(2, gap="small")
     yrs = sorted(df["Year"].unique())
     with s1:
-        yr_from, yr_to = st.slider("Year range", yrs[0], yrs[-1], (yrs[0], yrs[-1]))
+        yr_from, yr_to = st.slider("Year range", yrs[0], yrs[-1],
+                                   (yrs[0], yrs[-1]))
     amin, amax = int(df["Age"].min()), int(df["Age"].max())
     with s2:
-        age_from, age_to = st.slider("Age range", amin, amax, (amin, amax))
+        age_from, age_to = st.slider("Age range", amin, amax,
+                                     (amin, amax))
 
     c1, c2, c3 = st.columns(3, gap="small")
     with c1:
@@ -78,49 +82,50 @@ df_f = df[
 ]
 
 # ── PLOT CONFIG ─────────────────────────────────────────────────────
-H   = 140
-M   = dict(t=15, b=3, l=3, r=3)          # a little top space for titles
+H   = 160                          # 20 px taller for title space
+M   = dict(t=25, b=3, l=3, r=3)    # extra top margin
 CFG = {"displayModeBar": False}
 FONT = dict(size=9)
-TITLE = dict(font=dict(size=12), x=0.5)   # common title style
+TITLE_STYLE = dict(font=dict(size=12), x=0.5)  # centred, 12-pt
 
 # ── ROW 1 ───────────────────────────────────────────────────────────
 c11, c12 = st.columns(2, gap="small")
 
-with c11:  # Gender bar
+with c11:                          # Gender bar
     g = df_f["Sex"].value_counts().reset_index()
     g.columns = ["Sex", "Count"]
     fig = px.bar(g, x="Sex", y="Count", color="Sex",
                  color_discrete_map=SEX_COLORS, template="plotly_white")
-    fig.update_layout(title={**TITLE, "text":"Surgeries by Gender"},
+    fig.update_layout(title={**TITLE_STYLE, "text":"Surgeries by Gender"},
                       height=H, margin=M, showlegend=False, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
-with c12:  # Smoking pie
+with c12:                          # Smoking pie
     fig = px.pie(df_f, names="Smoker", hole=0.35, template="plotly_white")
-    fig.update_traces(marker=dict(colors=[DARK, LIGHT]), textinfo="percent+label")
-    fig.update_layout(title={**TITLE, "text":"Smokers vs Non-Smokers"},
+    fig.update_traces(marker=dict(colors=[DARK, LIGHT]),
+                      textinfo="percent+label")
+    fig.update_layout(title={**TITLE_STYLE, "text":"Smokers vs Non-Smokers"},
                       height=H, margin=M, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 # ── ROW 2 ───────────────────────────────────────────────────────────
 c21, c22 = st.columns(2, gap="small")
 
-with c21:  # Age histogram
+with c21:                          # Age histogram
     fig = px.histogram(df_f, x="Age", nbins=20, template="plotly_white")
     fig.update_traces(marker_color=DARK)
-    fig.update_layout(title={**TITLE, "text":"Age Distribution"},
+    fig.update_layout(title={**TITLE_STYLE, "text":"Age Distribution"},
                       height=H, margin=M, showlegend=False, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
-with c22:  # Bleeding vs HTN
+with c22:                          # Bleeding vs HTN
     hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
     hr["HTN"] = hr["HTN_Num"].map({0: "No HTN", 1: "HTN"})
     fig = px.bar(hr, x="HTN", y="Bleeding_Num",
                  labels={"Bleeding_Num": "Bleeding Rate"},
                  template="plotly_white",
                  color="HTN", color_discrete_map=HTN_COLORS)
-    fig.update_layout(title={**TITLE, "text":"Bleeding Risk by Hypertension"},
-                      height=H, margin=M,
-                      yaxis_tickformat=".0%", font=FONT, showlegend=False)
+    fig.update_layout(title={**TITLE_STYLE, "text":"Bleeding Risk by Hypertension"},
+                      height=H, margin=M, yaxis_tickformat=".0%",
+                      font=FONT, showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
