@@ -79,9 +79,10 @@ df_f = df[
 
 # ── PLOT CONFIG ─────────────────────────────────────────────────────
 H   = 140
-M   = dict(t=3, b=3, l=3, r=3)
+M   = dict(t=15, b=3, l=3, r=3)          # a little top space for titles
 CFG = {"displayModeBar": False}
 FONT = dict(size=9)
+TITLE = dict(font=dict(size=12), x=0.5)   # common title style
 
 # ── ROW 1 ───────────────────────────────────────────────────────────
 c11, c12 = st.columns(2, gap="small")
@@ -91,13 +92,15 @@ with c11:  # Gender bar
     g.columns = ["Sex", "Count"]
     fig = px.bar(g, x="Sex", y="Count", color="Sex",
                  color_discrete_map=SEX_COLORS, template="plotly_white")
-    fig.update_layout(height=H, margin=M, showlegend=False, font=FONT)
+    fig.update_layout(title={**TITLE, "text":"Surgeries by Gender"},
+                      height=H, margin=M, showlegend=False, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 with c12:  # Smoking pie
     fig = px.pie(df_f, names="Smoker", hole=0.35, template="plotly_white")
     fig.update_traces(marker=dict(colors=[DARK, LIGHT]), textinfo="percent+label")
-    fig.update_layout(height=H, margin=M, font=FONT)
+    fig.update_layout(title={**TITLE, "text":"Smokers vs Non-Smokers"},
+                      height=H, margin=M, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 # ── ROW 2 ───────────────────────────────────────────────────────────
@@ -106,7 +109,8 @@ c21, c22 = st.columns(2, gap="small")
 with c21:  # Age histogram
     fig = px.histogram(df_f, x="Age", nbins=20, template="plotly_white")
     fig.update_traces(marker_color=DARK)
-    fig.update_layout(height=H, margin=M, showlegend=False, font=FONT)
+    fig.update_layout(title={**TITLE, "text":"Age Distribution"},
+                      height=H, margin=M, showlegend=False, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 with c22:  # Bleeding vs HTN
@@ -116,6 +120,7 @@ with c22:  # Bleeding vs HTN
                  labels={"Bleeding_Num": "Bleeding Rate"},
                  template="plotly_white",
                  color="HTN", color_discrete_map=HTN_COLORS)
-    fig.update_layout(height=H, margin=M,
+    fig.update_layout(title={**TITLE, "text":"Bleeding Risk by Hypertension"},
+                      height=H, margin=M,
                       yaxis_tickformat=".0%", font=FONT, showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
