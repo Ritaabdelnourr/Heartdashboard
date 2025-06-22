@@ -2,31 +2,29 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ─── PAGE CONFIG + ULTRA-COMPACT CSS ─────────────────────────────────
-st.set_page_config(page_title="Heart-Disease Dashboard", layout="wide")
+# ── PAGE CONFIG + CSS ────────────────────────────────────────────────
+st.set_page_config(page_title="Heart‐Disease Dashboard", layout="wide")
 st.markdown(
     """
     <style>
-    .block-container {padding-top:0.3rem;}
-    .block-container > div {margin-top:0.25rem;margin-bottom:0.25rem;}
-    div[data-testid="column"] > div:first-child {margin-top:0rem;}
+    .block-container{padding-top:0.3rem;}
+    .block-container>div{margin-top:0.25rem;margin-bottom:0.25rem;}
+    div[data-testid="column"]>div:first-child{margin-top:0rem;}
     div[data-testid="stSlider"] label,
     div[data-testid="stSlider"] span,
     div[data-testid="stMultiSelect"] label,
-    div[data-baseweb="select"] * {
-        font-size:0.68rem !important; line-height:1rem;
-    }
+    div[data-baseweb="select"] *{font-size:0.68rem!important;line-height:1rem;}
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
-# ─── TITLE ───────────────────────────────────────────────────────────
+# ── TITLE ────────────────────────────────────────────────────────────
 st.write("#### 🚑 Heart-Disease Dashboard – Open-Heart Surgeries")
 
-# ─── DATA LOAD ───────────────────────────────────────────────────────
+# ── LOAD & PREP ───────────────────────────────────────────────────────
 @st.cache_data
-def load_data() -> pd.DataFrame:
+def load() -> pd.DataFrame:
     df = pd.read_csv("heart_disease_clean.csv")
     df["Date"] = pd.to_datetime(df["Date"], format="%d.%m.%Y", errors="coerce")
     df["Year"] = df["Date"].dt.year
@@ -35,75 +33,66 @@ def load_data() -> pd.DataFrame:
         df[c] = df[c].astype(str).str.strip()
         df[c + "_Num"] = df[c].str.lower().map({"yes": 1, "no": 0})
     df = df.dropna(subset=[
-        "Sex", "Age", "Residence",
-        "Smoker_Num", "HTN_Num", "Bleeding_Num", "Year"
+        "Sex", "Age", "Smoker_Num", "HTN_Num", "Bleeding_Num", "Year"
     ])
     df["Sex"]    = df["Sex"].str.strip()
     df["Smoker"] = df["Smoker"].str.strip()
     df["HTN"]    = df["HTN"].str.strip()
     return df
 
-df = load_data()
+df = load()
 
-# ─── COLOUR MAPS ─────────────────────────────────────────────────────
+# ── COLOURS ───────────────────────────────────────────────────────────
 SEX_COLORS = {"M": "#1f77b4", "F": "#ff7f0e"}
 HTN_COLORS = {"No HTN": "#17becf", "HTN": "#9467bd"}
 DARK, LIGHT = "#1f77b4", "#aec7e8"
 
-# ─── FILTER BAR ──────────────────────────────────────────────────────
+# ── FILTER BAR (Year & Age sliders + 3 selects) ──────────────────────
 with st.container():
-    f1, f2 = st.columns([0.5, 0.5], gap="small")
+    s1, s2 = st.columns(2, gap="small")
     yrs = sorted(df["Year"].unique())
-    with f1:
-        yr_start, yr_end = st.slider("Year", yrs[0], yrs[-1],
-                                     (yrs[0], yrs[-1]),
+    with s1:
+        yr_from, yr_to = st.slider("Year", yrs[0], yrs[-1],
+                                   (yrs[0], yrs[-1]),
+                                   label_visibility="collapsed")
+    amin, amax = int(df["Age"].min()), int(df["Age"].max())
+    with s2:
+        age_from, age_to = st.slider("Age", amin, amax, (amin, amax),
                                      label_visibility="collapsed")
-    a_min, a_max = int(df["Age"].min()), int(df["Age"].max())
-    with f2:
-        a_from, a_to = st.slider("Age", a_min, a_max, (a_min, a_max),
-                                 label_visibility="collapsed")
 
-    f3, f4, f5, f6 = st.columns(4, gap="small")
-    with f3:
-        sel_area = st.multiselect(
-            "Residence", sorted(df["Residence"].unique()),
-            default=sorted(df["Residence"].unique())
-        )
-    with f4:
-        sel_gender = st.multiselect(
-            "Gender", sorted(df["Sex"].unique()),
-            default=sorted(df["Sex"].unique())
-        )
-    with f5:
-        sel_smk = st.multiselect(
-            "Smoker", sorted(df["Smoker"].unique()),
-            default=sorted(df["Smoker"].unique())
-        )
-    with f6:
-        sel_htn = st.multiselect(
-            "HTN", sorted(df["HTN"].unique()),
-            default=sorted(df["HTN"].unique())
-        )
+    c1, c2, c3 = st.columns(3, gap="small")
+    with c1:
+        sel_gender = st.multiselect("Gender",
+                                    sorted(df["Sex"].unique()),
+                                    default=sorted(df["Sex"].unique()))
+    with c2:
+        sel_smk = st.multiselect("Smoker",
+                                 sorted(df["Smoker"].unique()),
+                                 default=sorted(df["Smoker"].unique()))
+    with c3:
+        sel_htn = st.multiselect("HTN",
+                                 sorted(df["HTN"].unique()),
+                                 default=sorted(df["HTN"].unique()))
 
+# ── APPLY FILTERS ─────────────────────────────────────────────────────
 df_f = df[
-    df["Year"].between(yr_start, yr_end)
-    & df["Residence"].isin(sel_area)
+    df["Year"].between(yr_from, yr_to)
     & df["Sex"].isin(sel_gender)
     & df["Smoker"].isin(sel_smk)
     & df["HTN"].isin(sel_htn)
-    & df["Age"].between(a_from, a_to)
+    & df["Age"].between(age_from, age_to)
 ]
 
-# ─── CHART SETTINGS ──────────────────────────────────────────────────
+# ── CHART SETTINGS ────────────────────────────────────────────────────
 H   = 120
 M   = dict(t=3, b=3, l=3, r=3)
 CFG = {"displayModeBar": False}
 FONT = {"size": 9}
 
-# ─── ROW 1 ────────────────────────────────────────────────────────────
-c11, c12 = st.columns(2, gap="small")
+# ── ROW 1 ─────────────────────────────────────────────────────────────
+col11, col12 = st.columns(2, gap="small")
 
-with c11:  # Gender
+with col11:
     g = df_f["Sex"].value_counts().reset_index()
     g.columns = ["Sex", "Count"]
     fig = px.bar(g, x="Sex", y="Count",
@@ -112,7 +101,7 @@ with c11:  # Gender
     fig.update_layout(height=H, margin=M, showlegend=False, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
-with c12:  # Smoking
+with col12:
     fig = px.pie(df_f, names="Smoker", hole=0.35,
                  template="plotly_white")
     fig.update_traces(marker=dict(colors=[DARK, LIGHT]),
@@ -120,16 +109,17 @@ with c12:  # Smoking
     fig.update_layout(height=H, margin=M, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
-# ─── ROW 2 ────────────────────────────────────────────────────────────
-c21, c22 = st.columns(2, gap="small")
+# ── ROW 2 ─────────────────────────────────────────────────────────────
+col21, col22 = st.columns(2, gap="small")
 
-with c21:  # Age
-    fig = px.histogram(df_f, x="Age", nbins=20, template="plotly_white")
+with col21:
+    fig = px.histogram(df_f, x="Age", nbins=20,
+                       template="plotly_white")
     fig.update_traces(marker_color=DARK)
     fig.update_layout(height=H, margin=M, showlegend=False, font=FONT)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
-with c22:  # Bleeding vs HTN
+with col22:
     hr = df_f.groupby("HTN_Num")["Bleeding_Num"].mean().reset_index()
     hr["HTN"] = hr["HTN_Num"].map({0: "No HTN", 1: "HTN"})
     fig = px.bar(hr, x="HTN", y="Bleeding_Num",
