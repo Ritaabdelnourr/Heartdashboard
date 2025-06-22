@@ -1,43 +1,42 @@
-# Heart-Disease Dashboard – single-file Streamlit app
-# ---------------------------------------------------
-# Only the LAYOUT was changed:
-#   • Main canvas = 2 × 2 grid that fits on one page
-#   • Bleeding-risk charts tucked in an expandable panel
-#   • No changes to data logic, colours, or filters
-
+# Heart-Disease Dashboard  – 2 × 2 layout
+# -------------------------------------------------
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ── Page setup ────────────────────────────────────────────────────────────────
+# ── Page setup ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Heart Disease Dashboard", layout="wide")
 st.title("🚑 Heart Disease Dashboard")
 st.markdown("#### Open Heart Surgeries Cohort Analysis")
 
-# ── Load & preprocess ─────────────────────────────────────────────────────────
+# ── Load & preprocess ────────────────────────────────────────────────────────
 @st.cache_data
 def load_data():
     df = pd.read_csv("heart_disease_clean.csv")
+
     df["Date"] = pd.to_datetime(df["Date"], format="%d.%m.%Y", errors="coerce")
     df["Year"] = df["Date"].dt.year
     df["Age"]  = pd.to_numeric(df["Age"], errors="coerce")
+
     for col in ["Smoker", "HTN", "Bleeding"]:
         df[col + "_Num"] = (
-            df[col].str.strip().str.lower().map({"yes": 1, "no": 0})
+            df[col].astype(str).str.strip().str.lower().map({"yes": 1, "no": 0})
         )
-    return df.dropna(subset=[
+
+    df = df.dropna(subset=[
         "Sex", "Age", "Residence",
         "Smoker_Num", "HTN_Num", "Bleeding_Num", "Year"
     ])
+    return df
 
 df = load_data()
 
-# ── Sidebar filters ───────────────────────────────────────────────────────────
+# ── Sidebar filters ──────────────────────────────────────────────────────────
 st.sidebar.header("Filters")
 
 yrs = sorted(df["Year"].unique())
 yr_start, yr_end = st.sidebar.slider(
-    "Year range", yrs[0], yrs[-1], (yrs[0], yrs[-1])
+    "Year range", int(yrs[0]), int(yrs[-1]), (int(yrs[0]), int(yrs[-1]))
 )
 
 areas = sorted(df["Residence"].unique())
@@ -67,35 +66,32 @@ df_f = df[
     df["Age"].between(age_start, age_end)
 ]
 
-# ── KPIs ───────────────────────────────────────────────────────────────────────
+# ── KPIs ──────────────────────────────────────────────────────────────────────
 k1, k2, k3 = st.columns(3)
 k1.metric("Total Patients",   f"{len(df_f):,}")
 k2.metric("Smokers (%)",      f"{df_f['Smoker_Num'].mean()*100:.1f}")
 k3.metric("Hypertension (%)", f"{df_f['HTN_Num'].mean()*100:.1f}")
 
-# ── Plotly config (unchanged) ─────────────────────────────────────────────────
+# ── Plotly config ────────────────────────────────────────────────────────────
 plot_config = {
     "displayModeBar": True,
     "modeBarButtonsToAdd": [
         "select2d", "lasso2d", "zoomIn2d", "zoomOut2d", "resetScale2d"
     ],
-    "scrollZoom": True
+    "scrollZoom": True,
 }
+dark_blue, light_blue = "#1f77b4", "#aec7e8"
 
-dark_blue  = "#1f77b4"
-light_blue = "#aec7e8"
-
-# ── 2 × 2 DASHBOARD CANVAS ────────────────────────────────────────────────────
+# ── 2 × 2 DASHBOARD CANVAS ───────────────────────────────────────────────────
 st.subheader("Open-Heart Surgeries – 2 × 2 Overview")
 
-# Row 1 ────────────────────────────────────────────────────────────────────────
+# Row 1
 r1c1, r1c2 = st.columns(2, gap="medium")
 
 with r1c1:
     st.markdown("##### Surgeries by Gender")
     fig1 = px.histogram(
-        df_f, x="Sex",
-        template="plotly_white",
+        df_f, x="Sex", template="plotly_white",
         color_discrete_sequence=[dark_blue]
     )
     fig1.update_layout(height=225, margin=dict(t=25, b=10, l=10, r=10),
@@ -112,7 +108,7 @@ with r1c2:
     fig2.update_layout(height=225, margin=dict(t=25, b=10, l=10, r=10))
     st.plotly_chart(fig2, use_container_width=True, config=plot_config)
 
-# Row 2 ────────────────────────────────────────────────────────────────────────
+# Row 2
 r2c1, r2c2 = st.columns(2, gap="medium")
 
 with r2c1:
@@ -138,7 +134,7 @@ with r2c2:
     )
     st.plotly_chart(fig4, use_container_width=True, config=plot_config)
 
-# ── Optional detail (bleeding-risk) in EXPANDER ───────────────────────────────
+# ── Optional detail in expander ───────────────────────────────────────────────
 with st.expander("🔮 Bleeding-risk detail (click to open)", expanded=False):
     p1, p2 = st.columns(2, gap="medium")
 
