@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ── PAGE CONFIG + ULTRA-COMPACT CSS ──────────────────────────────────
+# ── PAGE + ULTRA-COMPACT CSS ─────────────────────────────────────────
 st.set_page_config(page_title="Heart-Disease Dashboard", layout="wide")
 st.markdown(
     """
@@ -32,7 +32,7 @@ def load() -> pd.DataFrame:
     df["Year"] = df["Date"].dt.year
     df["Age"]  = pd.to_numeric(df["Age"], errors="coerce")
     for c in ["Smoker", "HTN", "Bleeding"]:
-        df[c] = df[c].astype(str).str.strip()
+        df[c] = df[c].astype(str).strip()
         df[c + "_Num"] = df[c].str.lower().map({"yes": 1, "no": 0})
     df = df.dropna(subset=[
         "Sex","Age","Smoker_Num","HTN_Num","Bleeding_Num","Year"
@@ -44,37 +44,36 @@ def load() -> pd.DataFrame:
 
 df = load()
 
-# ── COLOUR MAPS ───────────────────────────────────────────────────────
+# ── COLOUR MAPS ──────────────────────────────────────────────────────
 SEX_COLORS = {"M": "#1f77b4", "F": "#ff7f0e"}
 HTN_COLORS = {"No HTN": "#17becf", "HTN": "#9467bd"}
 DARK, LIGHT = "#1f77b4", "#aec7e8"
 
-# ── FILTER BAR (Year + Age sliders, 3 multiselects) ──────────────────
+# ── FILTER BAR (Year & Age sliders + 3 selects) ─────────────────────
 with st.container():
     s1, s2 = st.columns(2, gap="small")
     years = sorted(df["Year"].unique())
     with s1:
-        yr_from, yr_to = st.slider("Year", years[0], years[-1],
-                                   (years[0], years[-1]),
-                                   label_visibility="collapsed")
+        yr_from, yr_to = st.slider("Year range", years[0], years[-1],
+                                   (years[0], years[-1]))
     amin, amax = int(df["Age"].min()), int(df["Age"].max())
     with s2:
-        age_from, age_to = st.slider("Age", amin, amax, (amin, amax),
-                                     label_visibility="collapsed")
+        age_from, age_to = st.slider("Age range", amin, amax,
+                                     (amin, amax))
 
     c1, c2, c3 = st.columns(3, gap="small")
     with c1:
-        sel_gender = st.multiselect("Gender",
-                                    sorted(df["Sex"].unique()),
-                                    default=sorted(df["Sex"].unique()))
+        sel_gender = st.multiselect(
+            "Gender", sorted(df["Sex"].unique()),
+            default=sorted(df["Sex"].unique()))
     with c2:
-        sel_smk = st.multiselect("Smoker",
-                                 sorted(df["Smoker"].unique()),
-                                 default=sorted(df["Smoker"].unique()))
+        sel_smk = st.multiselect(
+            "Smoker", sorted(df["Smoker"].unique()),
+            default=sorted(df["Smoker"].unique()))
     with c3:
-        sel_htn = st.multiselect("HTN",
-                                 sorted(df["HTN"].unique()),
-                                 default=sorted(df["HTN"].unique()))
+        sel_htn = st.multiselect(
+            "HTN", sorted(df["HTN"].unique()),
+            default=sorted(df["HTN"].unique()))
 
 df_f = df[
     df["Year"].between(yr_from, yr_to)
@@ -84,13 +83,13 @@ df_f = df[
     & df["Age"].between(age_from, age_to)
 ]
 
-# ── PLOT CONFIG ───────────────────────────────────────────────────────
-H   = 140                    # ← enlarged chart height
+# ── PLOT CONFIG ─────────────────────────────────────────────────────
+H   = 140
 M   = dict(t=3, b=3, l=3, r=3)
 CFG = {"displayModeBar": False}
-FONT = {"size": 9}
+FONT = dict(size=9)
 
-# ── ROW 1 ─────────────────────────────────────────────────────────────
+# ── ROW 1 ───────────────────────────────────────────────────────────
 c11, c12 = st.columns(2, gap="small")
 
 with c11:
@@ -98,25 +97,31 @@ with c11:
     g.columns = ["Sex", "Count"]
     fig = px.bar(g, x="Sex", y="Count",
                  color="Sex", color_discrete_map=SEX_COLORS,
-                 template="plotly_white")
-    fig.update_layout(height=H, margin=M, showlegend=False, font=FONT)
+                 template="plotly_white",
+                 title="Surgeries by Gender")
+    fig.update_layout(height=H, margin=M, showlegend=False, font=FONT,
+                      title_font_size=10)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 with c12:
     fig = px.pie(df_f, names="Smoker", hole=0.35,
-                 template="plotly_white")
+                 template="plotly_white",
+                 title="Smokers vs Non-Smokers")
     fig.update_traces(marker=dict(colors=[DARK, LIGHT]),
                       textinfo="percent+label")
-    fig.update_layout(height=H, margin=M, font=FONT)
+    fig.update_layout(height=H, margin=M, font=FONT,
+                      title_font_size=10)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
-# ── ROW 2 ─────────────────────────────────────────────────────────────
+# ── ROW 2 ───────────────────────────────────────────────────────────
 c21, c22 = st.columns(2, gap="small")
 
 with c21:
-    fig = px.histogram(df_f, x="Age", nbins=20, template="plotly_white")
+    fig = px.histogram(df_f, x="Age", nbins=20, template="plotly_white",
+                       title="Age Distribution")
     fig.update_traces(marker_color=DARK)
-    fig.update_layout(height=H, margin=M, showlegend=False, font=FONT)
+    fig.update_layout(height=H, margin=M, showlegend=False, font=FONT,
+                      title_font_size=10)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
 
 with c22:
@@ -125,7 +130,9 @@ with c22:
     fig = px.bar(hr, x="HTN", y="Bleeding_Num",
                  labels={"Bleeding_Num": "Bleeding Rate"},
                  template="plotly_white",
-                 color="HTN", color_discrete_map=HTN_COLORS)
-    fig.update_layout(height=H, margin=M,
-                      yaxis_tickformat=".0%", font=FONT, showlegend=False)
+                 color="HTN", color_discrete_map=HTN_COLORS,
+                 title="Bleeding Risk by HTN")
+    fig.update_layout(height=H, margin=M, font=FONT,
+                      yaxis_tickformat=".0%", title_font_size=10,
+                      showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config=CFG)
