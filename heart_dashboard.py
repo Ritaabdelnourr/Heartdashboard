@@ -39,9 +39,11 @@ def load_data() -> pd.DataFrame:
 df = load_data()
 
 # ─────────  COLOUR MAPS  ───────────────────────────────────────────────
-SEX_COLORS = {"M": "#1f77b4", "F": "#ff7f0e"}          # blue / orange
-HTN_COLORS = {"No HTN": "#2ca02c", "HTN": "#d62728"}   # green / red
-DARK, LIGHT = "#1f77b4", "#aec7e8"                     # generic
+# custom colour maps
+SEX_COLORS = {"M": "#1f77b4", "F": "#ff7f0e"}           # blue / orange
+HTN_COLORS = {"No HTN": "#17becf", "HTN": "#9467bd"}    # teal / purple ← NEW
+DARK, LIGHT = "#1f77b4", "#aec7e8"                      # generic blues
+
 
 # ─────────  FILTER BAR (always visible)  ───────────────────────────────
 with st.container():
